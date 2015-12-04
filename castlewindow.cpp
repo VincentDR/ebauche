@@ -27,7 +27,7 @@ void CastleWindow::initialize()
      //glDepthFunc( GL_GREATER );
 
     // Enable back face culling
-    //glEnable(GL_CULL_FACE);
+    glEnable(GL_CULL_FACE);
 
 
     glClearColor(1.0f,1.0f,1.0f,1.0f);
@@ -45,49 +45,29 @@ void CastleWindow::initialize()
     m_bitangent = m_program->attributeLocation( "bitangent" );
 
     //TEXTURES
-    //-----------------------------------------------------------------
+    textures = (QOpenGLTexture**)malloc(sizeof(QOpenGLTexture*) * nbTextures * 2);
+
     //Sol
-    texGround = new QOpenGLTexture(QImage( ":/pave.jpg" ));
-
-    // Set nearest filtering mode for texture minification
-    texGround->setMinificationFilter( QOpenGLTexture::NearestMipMapLinear );
-
-    // Set bilinear filtering mode for texture magnification
-    texGround->setMagnificationFilter( QOpenGLTexture::Linear );
-
-    // Wrap texture coordinates by repeating
-    // f.ex. texture coordinate (1.1, 1.2) is same as (0.1, 0.2)
-    texGround->setWrapMode( QOpenGLTexture::MirroredRepeat );
-
-    //-----------------------------------------------------------------
+    textures[textureGround*2] = new QOpenGLTexture(QImage( nameTextureGround ));
+    textures[textureGround*2 + 1] = new QOpenGLTexture( QImage( nameTextureGroundN ) );
     //Mur
-    texWall = new QOpenGLTexture( QImage( ":/brickwall.jpg" ) );
+    textures[textureWall*2] = new QOpenGLTexture(QImage( nameTextureWall ));
+    textures[textureWall*2 + 1] = new QOpenGLTexture(QImage( nameTextureWallN ));
 
-    // Set nearest filtering mode for texture minification
-    texWall->setMinificationFilter( QOpenGLTexture::NearestMipMapLinear );
+    for(int i = 0; i < nbTextures;  i++){
+         // Set nearest filtering mode for texture minification
+        textures[i]->setMinificationFilter( QOpenGLTexture::NearestMipMapLinear );
+        // Set bilinear filtering mode for texture magnification
+        textures[i]->setMagnificationFilter( QOpenGLTexture::Linear );
+        // Wrap texture coordinates by repeating
+        // f.ex. texture coordinate (1.1, 1.2) is same as (0.1, 0.2)
+        textures[i]->setWrapMode( QOpenGLTexture::MirroredRepeat );
 
-    // Set bilinear filtering mode for texture magnification
-    texWall->setMagnificationFilter( QOpenGLTexture::Linear );
+        textures[i+1]->setMinificationFilter( QOpenGLTexture::NearestMipMapLinear );
+        textures[i+1]->setMagnificationFilter( QOpenGLTexture::Linear );
+        textures[i+1]->setWrapMode( QOpenGLTexture::MirroredRepeat );
 
-    // Wrap texture coordinates by repeating
-    // f.ex. texture coordinate (1.1, 1.2) is same as (0.1, 0.2)
-    texWall->setWrapMode( QOpenGLTexture::MirroredRepeat);
-
-    //-----------------------------------------------------------------
-    //Normal map pour le mur
-    nmWall = new QOpenGLTexture( QImage( ":/brickwall_normal.jpg" ) );
-
-    // Set nearest filtering mode for texture minification
-    nmWall->setMinificationFilter( QOpenGLTexture::NearestMipMapLinear );
-
-    // Set bilinear filtering mode for texture magnification
-    nmWall->setMagnificationFilter( QOpenGLTexture::Linear );
-
-    // Wrap texture coordinates by repeating
-    // f.ex. texture coordinate (1.1, 1.2) is same as (0.1, 0.2)
-    nmWall->setWrapMode( QOpenGLTexture::MirroredRepeat);
-
-    //-----------------------------------------------------------------
+    }
 
 
     // initialisation de la camera
@@ -120,12 +100,12 @@ void CastleWindow::render()
 
 
     //-------------------------------
-
     //Binder les textures avec le programme
     m_program->bind();
-    texGround->bind(0);
-    texWall->bind(2);
-    nmWall->bind(3);
+    for(int i = 0; i < nbTextures ; i++){
+        textures[i*2]->bind(i*2);
+        textures[i*2 + 1]->bind(i*2 + 1);
+    }
 
     //-------------------------------
 
@@ -177,7 +157,7 @@ void CastleWindow::render()
 
     //createCube(2.0, matProj*matView*matWorld,QVector3D(5,1,0),QVector3D(0,45,0),QVector3D(1,1,1),1);
 
-    //createMur(1.0,QVector3D(3.0,2.0,2.0),matProj*matView*matWorld,QVector3D(1,1,0),QVector3D(0,90,0),QVector3D(1,1,1),1,1);
+    //createMur(2.0,QVector3D(3.0,2.0,2.0),matProj*matView*matWorld,QVector3D(1,1,0),QVector3D(0,90,0),QVector3D(1,1,1),1,1,true);
 
     //createTour(2.0, QVector3D(2.0,3.0,2.0), matProj*matView*matWorld, QVector3D(1,0,0),QVector3D(0,0,0),QVector3D(1,1,1),1,1);
 
@@ -185,15 +165,17 @@ void CastleWindow::render()
 
     //createTourCylinder(2.0,QVector2D(10,5),matProj*matView*matWorld, QVector3D(0,0,0),QVector3D(0,0,0), QVector3D(1,1,1),1,1);
 
+
+
     m_program->release();
 
     ++m_frame;
 
 }
 
-void CastleWindow::initTextures(int nbTexture){
-    m_program->setUniformValue( "tex", nbTexture*2 );
-    m_program->setUniformValue( "nmTex", (nbTexture*2)+1 );
+void CastleWindow::initTextures(int nbText){
+    m_program->setUniformValue( "tex", nbText*2 );
+    m_program->setUniformValue( "nmTex", (nbText*2)+1 );
 }
 
 QMatrix4x4 CastleWindow::createMatrixWorld(QVector3D translate, QVector3D rotate, QVector3D scale){
@@ -564,7 +546,7 @@ void CastleWindow::createCubeParam(QVector3D* pos, QMatrix4x4  matGlobale,QVecto
                     QVector3D(0,0,0),QVector3D(1,1,1),texture);
 
     //Face Haut
-    createFaceParam(pos[0], pos[1], pos[2], pos[3],
+    createFaceParam(pos[3], pos[2], pos[1], pos[0],
                matGlobale * matWorld,QVector3D(0,0,haut),
                QVector3D(0,0,0),QVector3D(1,1,1),texture);
 
@@ -574,7 +556,7 @@ void CastleWindow::createCubeParam(QVector3D* pos, QMatrix4x4  matGlobale,QVecto
                QVector3D(0,0,0),QVector3D(1,1,1),texture);
 
     //Face Arrière
-    createFaceParam(pos[3], pos[2], pos[6], pos[7],
+    createFaceParam(pos[7], pos[6], pos[2], pos[3],
                     matGlobale * matWorld, QVector3D(0,0,de),
                QVector3D(0,0,0),QVector3D(1,1,1),texture);
 
@@ -584,13 +566,13 @@ void CastleWindow::createCubeParam(QVector3D* pos, QMatrix4x4  matGlobale,QVecto
                QVector3D(0,0,0),QVector3D(1,1,1),texture);
 
     //Face Gauche
-    createFaceParam(pos[0], pos[3], pos[7], pos[4],
+    createFaceParam(pos[4], pos[7], pos[3], pos[0],
                     matGlobale * matWorld,QVector3D(gauche,0,0),
                QVector3D(0,0,0),QVector3D(1,1,1),texture);
 }
 
 
-void CastleWindow::createMur(GLfloat lenght,QVector3D nbCubes, QMatrix4x4 matGlobale, QVector3D translate, QVector3D rotate, QVector3D scale ,int texture, int rdCre){
+void CastleWindow::createMur(GLfloat lenght,QVector3D nbCubes, QMatrix4x4 matGlobale, QVector3D translate, QVector3D rotate, QVector3D scale ,int texture, int rdCre, bool hourd){
     QMatrix4x4 matWorld = createMatrixWorld(translate,rotate,scale);
 
 
@@ -609,8 +591,12 @@ void CastleWindow::createMur(GLfloat lenght,QVector3D nbCubes, QMatrix4x4 matGlo
                 createCube(lenght,matGlobale*matWorld,QVector3D(deplX,deplY,deplZ),QVector3D(0,0,0),QVector3D(1,1,1),texture);
 
                 if((nbCubes.z() == 1 || k == (int)-nbCubes.z() / 2 )&& ( nbCubes.y() == 1 || j == (int)nbCubes.y() / 2 -1)){//Ne le faire qu'une seule fois, sur bord du rempart
-                    createCrenelage(lenght,nbCubes.x(),matGlobale*matWorld,QVector3D(deplX,deplY,deplZ),QVector3D(0,0,0),QVector3D(1,1,1),texture,rdCre);
-                }
+                    if(!hourd){
+                        createCrenelage(lenght,nbCubes.x(),matGlobale*matWorld,QVector3D(deplX,deplY,deplZ),QVector3D(0,0,0),QVector3D(1,1,1),texture,rdCre);
+                    }else{
+                        createHourd(lenght,QVector2D(nbCubes.x(),nbCubes.z()),matGlobale*matWorld,QVector3D(deplX,deplY,deplZ),QVector3D(0,0,0),QVector3D(1,1,1),texture);
+                     }
+               }
             }
         }
     }
@@ -668,6 +654,147 @@ void CastleWindow::createCrenelage(GLfloat lenght,GLfloat nbCubes,QMatrix4x4 mat
         //rebord
         createCube(lenght,matGlobale*matWorld,QVector3D(deplX,deplY-lenght,deplZ),QVector3D(0,0,0),QVector3D(0.25,0.25,0.25),texture);
     }
+}
+
+void CastleWindow::createHourd(GLfloat lenght,QVector2D nbCubes,QMatrix4x4 matGlobale,QVector3D translate,QVector3D rotate, QVector3D scale,int texture){
+    QMatrix4x4 matWorld = createMatrixWorld(translate,rotate,scale);
+
+    GLfloat deplZB = -lenght;
+
+    //createPlank( matGlobale*matWorld, QVector3D(lenght,lenght/10,lenght), QVector3D(0,lenght,deplZB),QVector3D(90,0,0));
+    //createPlank( matGlobale*matWorld, QVector3D(lenght,lenght/10,lenght/2), QVector3D(0,lenght/2 - lenght/20,deplZB+lenght/4));
+
+    createPerforedPlank( matGlobale*matWorld, QVector3D(lenght,lenght/10,lenght), QVector2D(lenght/3,lenght/3), QVector3D(0,lenght,deplZB),QVector3D(90,0,0));
+    createPerforedPlank( matGlobale*matWorld, QVector3D(lenght,lenght/10,lenght/2), QVector2D(lenght/3,lenght/6), QVector3D(0,lenght/2 - lenght/20,deplZB+lenght/4));
+
+    //createFace(QVector3D(0,0,0),lenght,lenght,matGlobale*matWorld,QVector3D(0,lenght,deplZB),QVector3D(180,0,0));
+    //createFace(QVector3D(0,0,0),lenght,lenght/2,matGlobale*matWorld,QVector3D(0,lenght/2,deplZB+lenght/4),QVector3D(90,0,0));
+
+    //Les soutiens sous le surplomb
+    GLfloat pas = lenght/8;
+    QVector3D* pos = (QVector3D*)malloc(sizeof(QVector3D)*8);
+    pos[0] = QVector3D(-pas,pas*4,-pas);
+    pos[1] = QVector3D(pas,pas*4,-pas);
+    pos[2] = QVector3D(pas/2,pas,2*pas);
+    pos[3] = QVector3D(-pas/2,pas,2*pas);
+
+    pos[4] = QVector3D(-pas,0,-pas);
+    pos[5] = QVector3D(pas,0,-pas);
+    pos[6] = QVector3D(pas/2,0,2*pas);
+    pos[7] = QVector3D(-pas/2,0,2*pas);
+
+    createCubeParam(pos,matGlobale*matWorld,QVector3D(-lenght/3,pas*2  + pas/5,-lenght/2),QVector3D(-90,180,0),QVector3D(1,1,1),texture);
+    createCubeParam(pos,matGlobale*matWorld,QVector3D(lenght/3,pas*2 + pas/5,-lenght/2),QVector3D(-90,180,0),QVector3D(1,1,1),texture);
+
+
+    GLfloat deplYB = lenght*3/2;
+    GLfloat angleX = -45;
+    for(int i = 0; i < nbCubes.y()+2; i++){
+        if(i == 0){
+            angleX = -45;
+            deplZB += lenght/4;
+            deplYB += lenght/4;
+        }else if( i == nbCubes.y() + 1){
+            angleX = 45;
+            deplZB -= lenght/4;
+            deplYB += lenght/4;
+        }else{
+            angleX = 0;
+        }
+
+        createPlank( matGlobale*matWorld, QVector3D(lenght,lenght/10,lenght), QVector3D(0,deplYB,deplZB), QVector3D(angleX,0,0));
+
+        if(i == 0 ){
+            deplYB += lenght/2;
+            deplYB -= lenght/4;
+            deplZB -= lenght/4;
+        }else if(i == nbCubes.y()){
+            deplYB -= lenght/2;
+        }
+        deplZB += lenght;
+    }
+    deplZB -= lenght;
+    deplZB += lenght/4;
+
+
+    //createPlank( matGlobale*matWorld, QVector3D(lenght,lenght/10,lenght), QVector3D(0,lenght,deplZB),QVector3D(90,0,0));
+    //createPlank( matGlobale*matWorld, QVector3D(lenght,lenght/10,lenght/2), QVector3D(0,lenght/2 - lenght/20,deplZB-lenght/4));
+
+    createPerforedPlank( matGlobale*matWorld, QVector3D(lenght,lenght/10,lenght), QVector2D(lenght/3,lenght/3), QVector3D(0,lenght,deplZB),QVector3D(90,0,0));
+    createPerforedPlank( matGlobale*matWorld, QVector3D(lenght,lenght/10,lenght/2), QVector2D(lenght/3,lenght/6), QVector3D(0,lenght/2 - lenght/20,deplZB-lenght/4));
+
+
+    //createFace(QVector3D(0,0,0),lenght,lenght,matGlobale*matWorld,QVector3D(0,lenght,deplZB),QVector3D(0,0,0));
+    //createFace(QVector3D(0,0,0),lenght,lenght/2,matGlobale*matWorld,QVector3D(0,lenght/2,deplZB-lenght/4),QVector3D(90,0,0));
+
+
+    createCubeParam(pos,matGlobale*matWorld,QVector3D(-lenght/3,pas*2  + pas/5,deplZB-lenght/2),QVector3D(90,0,0),QVector3D(1,1,1),texture);
+    createCubeParam(pos,matGlobale*matWorld,QVector3D(lenght/3,pas*2 + pas/5,deplZB-lenght/2),QVector3D(90,0,0),QVector3D(1,1,1),texture);
+
+}
+
+void CastleWindow::createPlank(QMatrix4x4 matGlobale, QVector3D dimensions,QVector3D translate,QVector3D rotate, QVector3D scale,int texture){
+     QMatrix4x4 matWorld = createMatrixWorld(translate,rotate,scale);
+
+     //Face Bas
+     createFace(QVector3D(0.0, 0.0, 0.0), dimensions.x(), dimensions.z(), matGlobale * matWorld,QVector3D(0,-dimensions.y()/2.0,0),
+                QVector3D(90,0,0),QVector3D(1,1,1),texture);
+
+     //Face Haut
+     createFace(QVector3D(0.0, 0.0, 0.0), dimensions.x(), dimensions.z(), matGlobale * matWorld,QVector3D(0,dimensions.y()/2.0,0),
+                QVector3D(-90,0,0),QVector3D(1,1,1),texture);
+
+    //Face Avant
+    createFace(QVector3D(0.0, 0.0, 0.0), dimensions.x(), dimensions.y(), matGlobale * matWorld,QVector3D(0,0,dimensions.z()/2.0),
+                QVector3D(0,0,0),QVector3D(1,1,1),texture);
+
+     //Face Arrière
+     createFace(QVector3D(0.0, 0.0, 0.0), dimensions.x(), dimensions.y(), matGlobale * matWorld,QVector3D(0,0,- dimensions.z()/2.0),
+                QVector3D(0,180,0),QVector3D(1,1,1),texture);
+
+     //Face Droite
+     createFace(QVector3D(0.0, 0.0, 0.0), dimensions.z(), dimensions.y(), matGlobale * matWorld,QVector3D(dimensions.x()/2.0,0,0),
+                QVector3D(0,90,0),QVector3D(1,1,1),texture);
+
+     //Face Gauche
+     createFace(QVector3D(0.0, 0.0, 0.0), dimensions.z(), dimensions.y(), matGlobale * matWorld,QVector3D(-dimensions.x()/2.0,0,0),
+                QVector3D(0,0-90,0),QVector3D(1,1,1),texture);
+}
+
+void CastleWindow::createPerforedPlank(QMatrix4x4 matGlobale, QVector3D dimensions, QVector2D hole,QVector3D translate,QVector3D rotate, QVector3D scale,int texture){
+     QMatrix4x4 matWorld = createMatrixWorld(translate,rotate,scale);
+
+     //On crée 9 planks, dont une vide pour le trou
+     //Il faut trouver les positions des 8 autres ainsi que leurs nouvelles dimensions
+     /*
+      *     1   2   3
+      *     4       6
+      *     7   8   9
+      *
+      * */
+
+     GLfloat x147 = -(hole.x()/2 + (dimensions.x()/2 - hole.x()/2)/2);
+     GLfloat x369 = hole.x()/2 + (dimensions.x()/2 - hole.x()/2)/2;
+
+     GLfloat z123 = -(hole.y()/2 + (dimensions.z()/2 - hole.y()/2)/2);
+     GLfloat z789 = hole.y()/2 + (dimensions.z()/2 - hole.y()/2)/2;
+
+
+     GLfloat dimX147369 = dimensions.x()/2 - hole.x()/2;
+     GLfloat dimZ123789 = dimensions.z()/2 - hole.y()/2;
+
+     createPlank( matGlobale*matWorld, QVector3D(dimX147369,dimensions.y(),dimZ123789), QVector3D(x147,0,z123));
+     createPlank( matGlobale*matWorld, QVector3D(hole.x(),dimensions.y(),dimZ123789), QVector3D(0,0,z123));
+     createPlank( matGlobale*matWorld, QVector3D(dimX147369,dimensions.y(),dimZ123789), QVector3D(x369,0,z123));
+
+     createPlank( matGlobale*matWorld, QVector3D(dimX147369,dimensions.y(),hole.y()), QVector3D(x147,0,0));
+     createPlank( matGlobale*matWorld, QVector3D(dimX147369,dimensions.y(),hole.y()), QVector3D(x369,0,0));
+
+     createPlank( matGlobale*matWorld, QVector3D(dimX147369,dimensions.y(),dimZ123789), QVector3D(x147,0,z789));
+     createPlank( matGlobale*matWorld, QVector3D(hole.x(),dimensions.y(),dimZ123789), QVector3D(0,0,z789));
+     createPlank( matGlobale*matWorld, QVector3D(dimX147369,dimensions.y(),dimZ123789), QVector3D(x369,0,z789));
+
+
 }
 
 void CastleWindow::createTour(GLfloat lenght,QVector3D nbCubes, QMatrix4x4 matGlobale, QVector3D translate, QVector3D rotate, QVector3D scale ,int texture, int rdCre){
@@ -897,4 +1024,9 @@ void CastleWindow::createHautTourCylinder(GLfloat lenght, QVector2D nbCubes, QMa
 
 
     //createCubeParam(pos,matGlobale*matWorld);
+}
+
+
+void CastleWindow::generateEnceinte(GLfloat lenght, int nbCotesEnceinte, QVector2D hauteurMur, QVector2D hauteurTour, int texture, int rdCre){
+
 }

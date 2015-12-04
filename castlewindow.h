@@ -21,6 +21,9 @@
 #include <GL/freeglut.h>
 #include <GL/gl.h>
 
+
+
+
 static const char *vertexShaderSource =
     "#version 120\n"
     "attribute highp vec4 posAttr;\n" //Positions des vertex
@@ -110,6 +113,16 @@ static const char *fragmentShaderSource =
 
 
 
+#define nbTextures 2
+#define textureGround 0
+#define nameTextureGround ":/pave.jpg"
+#define nameTextureGroundN ":/pave.jpg"
+#define textureWall 1
+#define nameTextureWall ":/brickwall.jpg"
+#define nameTextureWallN ":/brickwall_normal.jpg"
+#define textureWood 2
+
+
 
 class CastleWindow : public OpenGLWindow
 {
@@ -157,12 +170,27 @@ public:
 
     //nbCubes stocke le nombre de cubes à afficher sur chaque dimension
     void createMur(GLfloat dim, QVector3D nbCubes, QMatrix4x4 matGlobale, QVector3D translate = QVector3D(0,0,0),
-                    QVector3D rotate = QVector3D(0,0,0), QVector3D scale = QVector3D(1,1,1),int texture = 1, int rdCre = 0);
+                    QVector3D rotate = QVector3D(0,0,0), QVector3D scale = QVector3D(1,1,1),int texture = 1, int rdCre = 0, bool hourd = false);
 
     //rdCre détermine si on a les créneaux : 1 - Prolongement Extérieur   2 - Prolongement Haut 0 - Random
     //nbCube est le nombre de cubes nécessitant des créneaux
     void createCrenelage(GLfloat lenght, GLfloat nbCubes, QMatrix4x4 matGlobale, QVector3D translate = QVector3D(0,0,0),
                     QVector3D rotate = QVector3D(0,0,0), QVector3D scale = QVector3D(1,1,1),int texture = 1, int rdCre = 0);
+
+    //Le "toit" en bois qui surplombe le mur
+    void createHourd(GLfloat lenght, QVector2D nbCubes, QMatrix4x4 matGlobale, QVector3D translate = QVector3D(0,0,0),
+                     QVector3D rotate = QVector3D(0,0,0), QVector3D scale = QVector3D(1,1,1),int texture = 1);
+
+    //Créer une planche sur un cube
+    //Dimensions est la taille en x,y,z de la planche, utile pour faire un toit
+    void createPlank(QMatrix4x4 matGlobale, QVector3D dimensions = QVector3D(1,0.1,1), QVector3D translate = QVector3D(0,0,0),
+                    QVector3D rotate = QVector3D(0,0,0), QVector3D scale = QVector3D(1,1,1),int texture = 1);
+
+    //Créer une planche avec un trou au centre de dimension hole
+    void createPerforedPlank(QMatrix4x4 matGlobale, QVector3D dimensions = QVector3D(1,0.1,1), QVector2D hole = QVector2D(0.5,0.5), QVector3D translate = QVector3D(0,0,0),
+                    QVector3D rotate = QVector3D(0,0,0), QVector3D scale = QVector3D(1,1,1),int texture = 1);
+
+
 
     void createTour(GLfloat dim, QVector3D nbCubes, QMatrix4x4 matGlobale, QVector3D translate = QVector3D(0,0,0),
                         QVector3D rotate = QVector3D(0,0,0), QVector3D scale = QVector3D(1,1,1),int texture = 1, int rdCre = 0);
@@ -181,6 +209,9 @@ public:
                         QVector3D rotate = QVector3D(0,0,0), QVector3D scale = QVector3D(1,1,1),int texture = 1, int rdCre = 0);
 
 
+    void generateEnceinte(GLfloat lenght, int nbCotesEnceinte, QVector2D hauteurMur, QVector2D hauteurTour, int texture = 1, int rdCre = 0);
+
+
 private:
     GLuint loadShader(GLenum type, const char *source);
 
@@ -197,9 +228,7 @@ private:
     int m_frame;
 
     //Textures
-    QOpenGLTexture *texGround;
-    QOpenGLTexture *texWall;
-    QOpenGLTexture *nmWall;
+    QOpenGLTexture **textures;
 
     //Gestion de la camera
     Camera cam;
