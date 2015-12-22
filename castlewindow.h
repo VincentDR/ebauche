@@ -113,7 +113,7 @@ static const char *fragmentShaderSource =
 
 
 
-#define nbTextures 2
+#define nbTextures 3
 #define textureGround 0
 #define nameTextureGround ":/pave.jpg"
 #define nameTextureGroundN ":/pave.jpg"
@@ -121,7 +121,32 @@ static const char *fragmentShaderSource =
 #define nameTextureWall ":/brickwall.jpg"
 #define nameTextureWallN ":/brickwall_normal.jpg"
 #define textureWood 2
+#define nameTextureWood ":/woodB.jpg"
+#define nameTextureWoodN ":/woodB_normal.jpg"
 
+//Utilisé pour les randomisations des détails
+#define nbDetails 3
+#define numeroHourd 3
+
+
+//Pour la random du type de tour
+#define typeTourCylindre 2
+//Pour permettre de créer des tours rondes en partant des paramètres des tours carrées
+#define coeffMultTour 5
+
+
+#define PI 3.14159265359
+
+
+//Pour stocker les attributs d'une élément (mur, tour...)
+struct attributesElement{
+    QVector3D dimensions;
+
+    int texture = 1;
+    //0 pour aléatoire, 1 pour créneau vers l'extérieur,
+    //2 pour le pronlongement vers le haut, 3 pour le hourd
+    int details = 0;
+};
 
 
 class CastleWindow : public OpenGLWindow
@@ -135,6 +160,9 @@ public:
     //Récupérer les evenements souris/clavier, puis les transmettre à la caméra
     void mouseMoveEvent ( QMouseEvent * event );
     void keyPressEvent(QKeyEvent *event);
+
+    //Pour randomiser les détails
+    int randomDetails(int details, int nbDetailsI = nbDetails);
 
     //Renvoie la matrix avec les modifications des 3 vecteurs (permet de modifier la matrice pour chaque dessin)
     QMatrix4x4 createMatrixWorld(QVector3D translate, QVector3D rotate, QVector3D scale);
@@ -170,12 +198,12 @@ public:
 
     //nbCubes stocke le nombre de cubes à afficher sur chaque dimension
     void createMur(GLfloat dim, QVector3D nbCubes, QMatrix4x4 matGlobale, QVector3D translate = QVector3D(0,0,0),
-                    QVector3D rotate = QVector3D(0,0,0), QVector3D scale = QVector3D(1,1,1),int texture = 1, int rdCre = 0, bool hourd = false);
+                    QVector3D rotate = QVector3D(0,0,0), QVector3D scale = QVector3D(1,1,1),int texture = 1, int details = 0);
 
     //rdCre détermine si on a les créneaux : 1 - Prolongement Extérieur   2 - Prolongement Haut 0 - Random
     //nbCube est le nombre de cubes nécessitant des créneaux
     void createCrenelage(GLfloat lenght, GLfloat nbCubes, QMatrix4x4 matGlobale, QVector3D translate = QVector3D(0,0,0),
-                    QVector3D rotate = QVector3D(0,0,0), QVector3D scale = QVector3D(1,1,1),int texture = 1, int rdCre = 0);
+                    QVector3D rotate = QVector3D(0,0,0), QVector3D scale = QVector3D(1,1,1),int texture = 1, int details = 0);
 
     //Le "toit" en bois qui surplombe le mur
     void createHourd(GLfloat lenght, QVector2D nbCubes, QMatrix4x4 matGlobale, QVector3D translate = QVector3D(0,0,0),
@@ -193,23 +221,37 @@ public:
 
 
     void createTour(GLfloat dim, QVector3D nbCubes, QMatrix4x4 matGlobale, QVector3D translate = QVector3D(0,0,0),
-                        QVector3D rotate = QVector3D(0,0,0), QVector3D scale = QVector3D(1,1,1),int texture = 1, int rdCre = 0);
+                        QVector3D rotate = QVector3D(0,0,0), QVector3D scale = QVector3D(1,1,1),int texture = 1, int details = 0);
 
 
     void createHautTour(GLfloat lenght, QVector2D nbCubes, QMatrix4x4 matGlobale, QVector3D translate = QVector3D(0,0,0),
-                        QVector3D rotate = QVector3D(0,0,0), QVector3D scale = QVector3D(1,1,1),int texture = 1, int rdCre = 0);
+                        QVector3D rotate = QVector3D(0,0,0), QVector3D scale = QVector3D(1,1,1),int texture = 1, int details = 0);
 
     //Lenght est la longueur entre le centre du cylinder et le milieu de l'arête opposée d'une face
     //nbCubes.x est le nombre de triangle formant la base (4 pour un carré)
     //nbCubes.y est le nombre de faces en hauteur
     void createTourCylinder(GLfloat lenght, QVector2D nbCubes,QMatrix4x4 matGlobale, QVector3D translate = QVector3D(0,0,0),
-                        QVector3D rotate = QVector3D(0,0,0), QVector3D scale = QVector3D(1,1,1),int texture = 1, int rdCre = 0);
+                        QVector3D rotate = QVector3D(0,0,0), QVector3D scale = QVector3D(1,1,1),int texture = 1, int details = 0);
 
     void createHautTourCylinder(GLfloat lenght, QVector2D nbCubes, QMatrix4x4 matGlobale, QVector3D translate = QVector3D(0,0,0),
                         QVector3D rotate = QVector3D(0,0,0), QVector3D scale = QVector3D(1,1,1),int texture = 1, int rdCre = 0);
 
+    void createHautTourCylinderHourd(GLfloat lenght, QVector2D nbCubes, QMatrix4x4 matGlobale, QVector3D translate = QVector3D(0,0,0),
+                                     QVector3D rotate = QVector3D(0,0,0), QVector3D scale = QVector3D(1,1,1),int texture = 1);
 
-    void generateEnceinte(GLfloat lenght, int nbCotesEnceinte, QVector2D hauteurMur, QVector2D hauteurTour, int texture = 1, int rdCre = 0);
+    void generateEnceinte(
+            //Attributs des cubes
+            GLfloat lenght,
+            //Attributs de l'enceinte
+            int nbCotesEnceinte,
+            //Attributs des murs
+            attributesElement attrMur,
+            //Type de la tours, comme details
+            int typeTours,
+            //Attributs des tours
+            attributesElement attrTour,
+            QMatrix4x4 matGlobale, QVector3D translate, QVector3D rotate, QVector3D scale,
+            int texture = 1, int details = 0);
 
 
 private:

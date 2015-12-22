@@ -3,5 +3,9 @@
         <file>brickwall_normal.jpg</file>
         <file>brickwall.jpg</file>
         <file>pave.jpg</file>
+        <file>wood_normal.jpg</file>
+        <file>wood.jpg</file>
+        <file>woodB_normal.jpg</file>
+        <file>woodB.jpg</file>
     </qresource>
 </RCC>

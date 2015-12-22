@@ -53,6 +53,10 @@ void CastleWindow::initialize()
     //Mur
     textures[textureWall*2] = new QOpenGLTexture(QImage( nameTextureWall ));
     textures[textureWall*2 + 1] = new QOpenGLTexture(QImage( nameTextureWallN ));
+    //Wood
+    textures[textureWood*2] = new QOpenGLTexture(QImage( nameTextureWood ));
+    textures[textureWood*2 + 1] = new QOpenGLTexture(QImage( nameTextureWoodN ));
+
 
     for(int i = 0; i < nbTextures;  i++){
          // Set nearest filtering mode for texture minification
@@ -157,21 +161,38 @@ void CastleWindow::render()
 
     //createCube(2.0, matProj*matView*matWorld,QVector3D(5,1,0),QVector3D(0,45,0),QVector3D(1,1,1),1);
 
-    //createMur(2.0,QVector3D(3.0,2.0,2.0),matProj*matView*matWorld,QVector3D(1,1,0),QVector3D(0,90,0),QVector3D(1,1,1),1,1,true);
+    //createMur(4.0,QVector3D(3.0,2.0,2.0),matProj*matView*matWorld,QVector3D(1,1,0),QVector3D(0,90,0),QVector3D(1,1,1),1,1);
 
-    //createTour(2.0, QVector3D(2.0,3.0,2.0), matProj*matView*matWorld, QVector3D(1,0,0),QVector3D(0,0,0),QVector3D(1,1,1),1,1);
+    //createTour(2.0, QVector3D(2.0,5.0,2.0), matProj*matView*matWorld, QVector3D(5,0,0),QVector3D(0,0,0),QVector3D(1,1,1),1,0);
 
     //createFaceTriangle(QVector3D(0.0, 0.0, 0.0), 5.0, 5.0, matProj*matView*matWorld,QVector3D(0,5,0),QVector3D(0,0,0),QVector3D(1,1,1),0);
 
-    //createTourCylinder(2.0,QVector2D(10,5),matProj*matView*matWorld, QVector3D(0,0,0),QVector3D(0,0,0), QVector3D(1,1,1),1,1);
+    //createTourCylinder(2.0,QVector2D(10,5),matProj*matView*matWorld, QVector3D(0,0,0),QVector3D(0,0,0), QVector3D(1,1,1),1,0);
 
-
+    ///Petit probleme en Y pour les tours cylindres
+    attributesElement attrMur;
+    attrMur.dimensions = QVector3D(5,2,1);
+    attributesElement attrTour;
+    attrTour.dimensions = QVector3D(2,4,2);
+    generateEnceinte(2.0,5,attrMur,1,attrTour,matProj*matView*matWorld, QVector3D(0,0,0),QVector3D(0,0,0), QVector3D(1,1,1),1,0);
 
     m_program->release();
 
     ++m_frame;
 
 }
+
+
+int CastleWindow::randomDetails(int details, int nbDetailsI){
+    int rd = details;
+    if(rd == 0){
+        //srand (time(NULL));
+        srand (0);
+        rd = (rand() % nbDetailsI) + 1;
+    }
+    return rd;
+}
+
 
 void CastleWindow::initTextures(int nbText){
     m_program->setUniformValue( "tex", nbText*2 );
@@ -572,9 +593,10 @@ void CastleWindow::createCubeParam(QVector3D* pos, QMatrix4x4  matGlobale,QVecto
 }
 
 
-void CastleWindow::createMur(GLfloat lenght,QVector3D nbCubes, QMatrix4x4 matGlobale, QVector3D translate, QVector3D rotate, QVector3D scale ,int texture, int rdCre, bool hourd){
+void CastleWindow::createMur(GLfloat lenght,QVector3D nbCubes, QMatrix4x4 matGlobale, QVector3D translate, QVector3D rotate, QVector3D scale ,int texture, int details){
     QMatrix4x4 matWorld = createMatrixWorld(translate,rotate,scale);
 
+    int rd = randomDetails(details);
 
     //Génération du mur
     for(int i = -nbCubes.x()/2; i < nbCubes.x()/2  ; i++){
@@ -591,10 +613,10 @@ void CastleWindow::createMur(GLfloat lenght,QVector3D nbCubes, QMatrix4x4 matGlo
                 createCube(lenght,matGlobale*matWorld,QVector3D(deplX,deplY,deplZ),QVector3D(0,0,0),QVector3D(1,1,1),texture);
 
                 if((nbCubes.z() == 1 || k == (int)-nbCubes.z() / 2 )&& ( nbCubes.y() == 1 || j == (int)nbCubes.y() / 2 -1)){//Ne le faire qu'une seule fois, sur bord du rempart
-                    if(!hourd){
-                        createCrenelage(lenght,nbCubes.x(),matGlobale*matWorld,QVector3D(deplX,deplY,deplZ),QVector3D(0,0,0),QVector3D(1,1,1),texture,rdCre);
+                    if(rd != numeroHourd){
+                        createCrenelage(lenght,nbCubes.x(),matGlobale*matWorld,QVector3D(deplX,deplY,deplZ),QVector3D(0,0,0),QVector3D(1,1,1),texture,rd);
                     }else{
-                        createHourd(lenght,QVector2D(nbCubes.x(),nbCubes.z()),matGlobale*matWorld,QVector3D(deplX,deplY,deplZ),QVector3D(0,0,0),QVector3D(1,1,1),texture);
+                        createHourd(lenght,QVector2D(nbCubes.x(),nbCubes.z()),matGlobale*matWorld,QVector3D(deplX,deplY,deplZ),QVector3D(0,0,0),QVector3D(1,1,1),textureWood);
                      }
                }
             }
@@ -604,19 +626,15 @@ void CastleWindow::createMur(GLfloat lenght,QVector3D nbCubes, QMatrix4x4 matGlo
 
 }
 
-void CastleWindow::createCrenelage(GLfloat lenght,GLfloat nbCubes,QMatrix4x4 matGlobale,QVector3D translate,QVector3D rotate, QVector3D scale,int texture, int rdCre){
+void CastleWindow::createCrenelage(GLfloat lenght,GLfloat nbCubes,QMatrix4x4 matGlobale,QVector3D translate,QVector3D rotate, QVector3D scale,int texture, int details){
     QMatrix4x4 matWorld = createMatrixWorld(translate,rotate,scale);
 
 
-    int rd = rdCre;
-    if(rd == 0){
-        srand (time(NULL));
-        rd = rand() % 2 + 1;
-    }
+    int rd = randomDetails(details);
 
    //qDebug()<<rd<<endl;
     if(rd == 1){
-        GLfloat pas = lenght/2;
+        GLfloat pas = lenght/2.0;
         QVector3D* pos = (QVector3D*)malloc(sizeof(QVector3D)*8);
         pos[0] = QVector3D(-pas,pas*2,-pas*3/2);
         pos[1] = QVector3D(pas,pas*2,-pas*3/2);
@@ -633,8 +651,8 @@ void CastleWindow::createCrenelage(GLfloat lenght,GLfloat nbCubes,QMatrix4x4 mat
 
     bool creneau = false;
     for(int i = -2; i < 2  ; i++){
-        GLfloat deplX = i/lenght + lenght*((int)nbCubes%2)/2;
-        if((int)nbCubes % 2 == 0) deplX += lenght/2;
+        GLfloat deplX = i*lenght + lenght*((int)nbCubes%2)/2;
+        if((int)nbCubes % 2 == 0) deplX += lenght/2.0;
         GLfloat deplY = 3*lenght + lenght/2;
         GLfloat deplZ = -2*lenght + lenght/2;;
 
@@ -664,8 +682,8 @@ void CastleWindow::createHourd(GLfloat lenght,QVector2D nbCubes,QMatrix4x4 matGl
     //createPlank( matGlobale*matWorld, QVector3D(lenght,lenght/10,lenght), QVector3D(0,lenght,deplZB),QVector3D(90,0,0));
     //createPlank( matGlobale*matWorld, QVector3D(lenght,lenght/10,lenght/2), QVector3D(0,lenght/2 - lenght/20,deplZB+lenght/4));
 
-    createPerforedPlank( matGlobale*matWorld, QVector3D(lenght,lenght/10,lenght), QVector2D(lenght/3,lenght/3), QVector3D(0,lenght,deplZB),QVector3D(90,0,0));
-    createPerforedPlank( matGlobale*matWorld, QVector3D(lenght,lenght/10,lenght/2), QVector2D(lenght/3,lenght/6), QVector3D(0,lenght/2 - lenght/20,deplZB+lenght/4));
+    createPerforedPlank( matGlobale*matWorld, QVector3D(lenght,lenght/10,lenght), QVector2D(lenght/3,lenght/3), QVector3D(0,lenght,deplZB),QVector3D(90,0,0),QVector3D(1,1,1),texture);
+    createPerforedPlank( matGlobale*matWorld, QVector3D(lenght,lenght/10,lenght/2), QVector2D(lenght/3,lenght/6), QVector3D(0,lenght/2 - lenght/20,deplZB+lenght/4), QVector3D(0,0,0),QVector3D(1,1,1),texture);
 
     //createFace(QVector3D(0,0,0),lenght,lenght,matGlobale*matWorld,QVector3D(0,lenght,deplZB),QVector3D(180,0,0));
     //createFace(QVector3D(0,0,0),lenght,lenght/2,matGlobale*matWorld,QVector3D(0,lenght/2,deplZB+lenght/4),QVector3D(90,0,0));
@@ -702,7 +720,7 @@ void CastleWindow::createHourd(GLfloat lenght,QVector2D nbCubes,QMatrix4x4 matGl
             angleX = 0;
         }
 
-        createPlank( matGlobale*matWorld, QVector3D(lenght,lenght/10,lenght), QVector3D(0,deplYB,deplZB), QVector3D(angleX,0,0));
+        createPlank( matGlobale*matWorld, QVector3D(lenght,lenght/10,lenght), QVector3D(0,deplYB,deplZB), QVector3D(angleX,0,0),QVector3D(1,1,1),texture);
 
         if(i == 0 ){
             deplYB += lenght/2;
@@ -720,8 +738,8 @@ void CastleWindow::createHourd(GLfloat lenght,QVector2D nbCubes,QMatrix4x4 matGl
     //createPlank( matGlobale*matWorld, QVector3D(lenght,lenght/10,lenght), QVector3D(0,lenght,deplZB),QVector3D(90,0,0));
     //createPlank( matGlobale*matWorld, QVector3D(lenght,lenght/10,lenght/2), QVector3D(0,lenght/2 - lenght/20,deplZB-lenght/4));
 
-    createPerforedPlank( matGlobale*matWorld, QVector3D(lenght,lenght/10,lenght), QVector2D(lenght/3,lenght/3), QVector3D(0,lenght,deplZB),QVector3D(90,0,0));
-    createPerforedPlank( matGlobale*matWorld, QVector3D(lenght,lenght/10,lenght/2), QVector2D(lenght/3,lenght/6), QVector3D(0,lenght/2 - lenght/20,deplZB-lenght/4));
+    createPerforedPlank( matGlobale*matWorld, QVector3D(lenght,lenght/10,lenght), QVector2D(lenght/3,lenght/3), QVector3D(0,lenght,deplZB),QVector3D(90,0,0),QVector3D(1,1,1),texture);
+    createPerforedPlank( matGlobale*matWorld, QVector3D(lenght,lenght/10,lenght/2), QVector2D(lenght/3,lenght/6), QVector3D(0,lenght/2 - lenght/20,deplZB-lenght/4),QVector3D(0,0,0),QVector3D(1,1,1),texture);
 
 
     //createFace(QVector3D(0,0,0),lenght,lenght,matGlobale*matWorld,QVector3D(0,lenght,deplZB),QVector3D(0,0,0));
@@ -783,21 +801,21 @@ void CastleWindow::createPerforedPlank(QMatrix4x4 matGlobale, QVector3D dimensio
      GLfloat dimX147369 = dimensions.x()/2 - hole.x()/2;
      GLfloat dimZ123789 = dimensions.z()/2 - hole.y()/2;
 
-     createPlank( matGlobale*matWorld, QVector3D(dimX147369,dimensions.y(),dimZ123789), QVector3D(x147,0,z123));
-     createPlank( matGlobale*matWorld, QVector3D(hole.x(),dimensions.y(),dimZ123789), QVector3D(0,0,z123));
-     createPlank( matGlobale*matWorld, QVector3D(dimX147369,dimensions.y(),dimZ123789), QVector3D(x369,0,z123));
+     createPlank( matGlobale*matWorld, QVector3D(dimX147369,dimensions.y(),dimZ123789), QVector3D(x147,0,z123),QVector3D(0,0,0),QVector3D(1,1,1),texture);
+     createPlank( matGlobale*matWorld, QVector3D(hole.x(),dimensions.y(),dimZ123789), QVector3D(0,0,z123),QVector3D(0,0,0),QVector3D(1,1,1),texture);
+     createPlank( matGlobale*matWorld, QVector3D(dimX147369,dimensions.y(),dimZ123789), QVector3D(x369,0,z123),QVector3D(0,0,0),QVector3D(1,1,1),texture);
 
-     createPlank( matGlobale*matWorld, QVector3D(dimX147369,dimensions.y(),hole.y()), QVector3D(x147,0,0));
-     createPlank( matGlobale*matWorld, QVector3D(dimX147369,dimensions.y(),hole.y()), QVector3D(x369,0,0));
+     createPlank( matGlobale*matWorld, QVector3D(dimX147369,dimensions.y(),hole.y()), QVector3D(x147,0,0),QVector3D(0,0,0),QVector3D(1,1,1),texture);
+     createPlank( matGlobale*matWorld, QVector3D(dimX147369,dimensions.y(),hole.y()), QVector3D(x369,0,0),QVector3D(0,0,0),QVector3D(1,1,1),texture);
 
-     createPlank( matGlobale*matWorld, QVector3D(dimX147369,dimensions.y(),dimZ123789), QVector3D(x147,0,z789));
-     createPlank( matGlobale*matWorld, QVector3D(hole.x(),dimensions.y(),dimZ123789), QVector3D(0,0,z789));
-     createPlank( matGlobale*matWorld, QVector3D(dimX147369,dimensions.y(),dimZ123789), QVector3D(x369,0,z789));
+     createPlank( matGlobale*matWorld, QVector3D(dimX147369,dimensions.y(),dimZ123789), QVector3D(x147,0,z789),QVector3D(0,0,0),QVector3D(1,1,1),texture);
+     createPlank( matGlobale*matWorld, QVector3D(hole.x(),dimensions.y(),dimZ123789), QVector3D(0,0,z789),QVector3D(0,0,0),QVector3D(1,1,1),texture);
+     createPlank( matGlobale*matWorld, QVector3D(dimX147369,dimensions.y(),dimZ123789), QVector3D(x369,0,z789),QVector3D(0,0,0),QVector3D(1,1,1),texture);
 
 
 }
 
-void CastleWindow::createTour(GLfloat lenght,QVector3D nbCubes, QMatrix4x4 matGlobale, QVector3D translate, QVector3D rotate, QVector3D scale ,int texture, int rdCre){
+void CastleWindow::createTour(GLfloat lenght,QVector3D nbCubes, QMatrix4x4 matGlobale, QVector3D translate, QVector3D rotate, QVector3D scale ,int texture, int details){
 
     QMatrix4x4 matWorld = createMatrixWorld(translate,rotate,scale);
 
@@ -818,18 +836,14 @@ void CastleWindow::createTour(GLfloat lenght,QVector3D nbCubes, QMatrix4x4 matGl
         }
     }
 
-    createHautTour(lenght,QVector2D(nbCubes.x(),nbCubes.z()),matGlobale*matWorld,QVector3D(0,lenght*nbCubes.y()/2 + lenght/2,0),QVector3D(0,0,0),QVector3D(1,1,1),texture,rdCre);
+    createHautTour(lenght,QVector2D(nbCubes.x(),nbCubes.z()),matGlobale*matWorld,QVector3D(0,lenght*nbCubes.y()/2 + lenght/2,0),QVector3D(0,0,0),QVector3D(1,1,1),texture,details);
 
 }
 
-void CastleWindow::createHautTour(GLfloat lenght, QVector2D nbCubes, QMatrix4x4 matGlobale, QVector3D translate,QVector3D rotate, QVector3D scale,int texture, int rdCre){
+void CastleWindow::createHautTour(GLfloat lenght, QVector2D nbCubes, QMatrix4x4 matGlobale, QVector3D translate,QVector3D rotate, QVector3D scale,int texture, int details){
     QMatrix4x4 matWorld = createMatrixWorld(translate,rotate,scale);
 
-    int rd = rdCre;
-    if(rd == 0){
-        srand (time(NULL));
-        rd = rand() % 2 + 1;
-    }
+    int rd = randomDetails(details);
 
     GLfloat deplXH = lenght * nbCubes.x()*4/2 - lenght/2;
     GLfloat deplXB = -lenght * nbCubes.x()*4/2 + lenght/2;
@@ -927,51 +941,44 @@ void CastleWindow::createHautTour(GLfloat lenght, QVector2D nbCubes, QMatrix4x4 
 }
 
 
-void CastleWindow::createTourCylinder(GLfloat lenght, QVector2D nbCubes,QMatrix4x4 matGlobale, QVector3D translate, QVector3D rotate, QVector3D scale,int texture, int rdCre){
+void CastleWindow::createTourCylinder(GLfloat lenght, QVector2D nbCubes,QMatrix4x4 matGlobale, QVector3D translate, QVector3D rotate, QVector3D scale,int texture, int details){
     QMatrix4x4 matWorld = createMatrixWorld(translate,rotate,scale);
 
-    int rd = rdCre;
-    if(rd == 0){
-        srand (time(NULL));
-        rd = rand() % 2 + 1;
-    }
-
-    //createCube(4,matWorld*matGlobale,QVector3D(0,0,0),QVector3D(0,0,0),QVector3D(1,1,1));
-
+    int rd = randomDetails(details);
 
     GLfloat rotPas = 360.0 / nbCubes.x();
     GLfloat rot = 0;
-    GLfloat lenghtX = 2 * (lenght / tan((90 - ((360.0/nbCubes.x())/2)) * 3.14/180.0));//on calcule la longeur du segment de la face opposé au centre du cercle via les fonctions trigo de base
+    GLfloat lenghtX = 2 * (lenght / tan((90 - ((360.0/nbCubes.x())/2)) * PI/180.0));//on calcule la longeur du segment de la face opposé au centre du cercle via les fonctions trigo de base
     for(int i = 0; i < nbCubes.x() ; i++){
         //Création du haut et du bas
-        GLfloat posX = (lenght/2)*cos(rot *3.14/180.0);
-        GLfloat posY = (lenght/2)*sin(rot *3.14/180.0);
+        GLfloat posX = (lenght/2)*cos(rot *PI/180.0);
+        GLfloat posY = (lenght/2)*sin(rot *PI/180.0);
         //Faces bas
-        createFaceTriangle(QVector3D(0,0,0), lenghtX,lenght, matGlobale*matWorld,QVector3D(posX,-lenghtX*nbCubes.y()/2,posY),QVector3D(90,0,90 + rot),QVector3D(1,1,1),texture);
+        createFaceTriangle(QVector3D(0,0,0), lenghtX,lenght, matGlobale*matWorld,QVector3D(posX,-lenght*nbCubes.y()/2,posY),QVector3D(90,0,90 + rot),QVector3D(1,1,1),texture);
         //Faces haut
-        createFaceTriangle(QVector3D(0,0,0), lenghtX,lenght, matGlobale*matWorld,QVector3D(posX,lenghtX*nbCubes.y()/2,posY),QVector3D(-90,0,90 - rot),QVector3D(1,1,1),texture);
+        createFaceTriangle(QVector3D(0,0,0), lenghtX,lenght, matGlobale*matWorld,QVector3D(posX,lenght*nbCubes.y()/2,posY),QVector3D(-90,0,90 - rot),QVector3D(1,1,1),texture);
 
         //Création des faces de côtés
-        GLfloat posC = -lenghtX*nbCubes.y()/2 + lenghtX/2;
+        GLfloat posC = -lenght*nbCubes.y()/2 + lenght/2;
         for(int j = 0 ; j < nbCubes.y() ;j++){
-            createFace(QVector3D(0,0,0), lenghtX,lenghtX, matGlobale*matWorld, QVector3D(posX*2,posC,posY*2),QVector3D(0,90-rot,0),QVector3D(1,1,1),texture);
-            posC += lenghtX;
+            createFace(QVector3D(0,0,0), lenghtX,lenght, matGlobale*matWorld, QVector3D(posX*2,posC,posY*2),QVector3D(0,90-rot,0),QVector3D(1,1,1),texture);
+            posC += lenght;
         }
 
         rot += rotPas;
     }
 
-    createHautTourCylinder(lenght,nbCubes,matGlobale*matWorld,QVector3D(0,lenghtX*nbCubes.y()/2,0),QVector3D(0,0,0),QVector3D(1,1,1),texture,rdCre);
+    if(rd == numeroHourd){
+       createHautTourCylinderHourd(lenght, nbCubes, matGlobale*matWorld, QVector3D(0,lenght*nbCubes.y()/2,0),QVector3D(0,0,0),QVector3D(1,1,1),textureWood);
+    }else{
+        createHautTourCylinder(lenght,nbCubes,matGlobale*matWorld,QVector3D(0,lenght*nbCubes.y()/2,0),QVector3D(0,0,0),QVector3D(1,1,1),texture,rd);
+    }
 }
 
-void CastleWindow::createHautTourCylinder(GLfloat lenght, QVector2D nbCubes, QMatrix4x4 matGlobale, QVector3D translate, QVector3D rotate, QVector3D scale, int texture, int rdCre){
+void CastleWindow::createHautTourCylinder(GLfloat lenght, QVector2D nbCubes, QMatrix4x4 matGlobale, QVector3D translate, QVector3D rotate, QVector3D scale, int texture, int details){
     QMatrix4x4 matWorld = createMatrixWorld(translate,rotate,scale);
 
-    int rd = rdCre;
-    if(rd == 0){
-        srand (time(NULL));
-        rd = rand() % 2 + 1;
-    }
+    int rd = randomDetails(details);
 
     GLfloat pas = 0.25;
     QVector3D* pos = (QVector3D*)malloc(sizeof(QVector3D)*8);
@@ -1010,8 +1017,8 @@ void CastleWindow::createHautTourCylinder(GLfloat lenght, QVector2D nbCubes, QMa
     GLfloat rotPas = 360.0 / nbCubes.x();
     GLfloat rot = 0;
     for(int i = 0; i < nbCubes.x() ; i++){
-        GLfloat posX = (lenght-pas)*cos(rot *3.14/180.0);
-        GLfloat posY = (lenght-pas)*sin(rot *3.14/180.0);
+        GLfloat posX = (lenght-pas)*cos(rot *PI/180.0);
+        GLfloat posY = (lenght-pas)*sin(rot *PI/180.0);
         createCubeParam(pos,matGlobale*matWorld,QVector3D(posX,0,posY),QVector3D(0,180+90-rot,0));
 
         if(rd == 1){
@@ -1026,7 +1033,108 @@ void CastleWindow::createHautTourCylinder(GLfloat lenght, QVector2D nbCubes, QMa
     //createCubeParam(pos,matGlobale*matWorld);
 }
 
+void CastleWindow::createHautTourCylinderHourd(GLfloat lenght, QVector2D nbCubes, QMatrix4x4 matGlobale, QVector3D translate, QVector3D rotate, QVector3D scale,int texture){
+    QMatrix4x4 matWorld = createMatrixWorld(translate,rotate,scale);
 
-void CastleWindow::generateEnceinte(GLfloat lenght, int nbCotesEnceinte, QVector2D hauteurMur, QVector2D hauteurTour, int texture, int rdCre){
+    //createCube(4,matGlobale * matWorld,QVector3D(0,0,0),QVector3D(0,0,0),QVector3D(1,1,1));
+
+    GLfloat hauteurToit = lenght/2;
+    GLfloat epaisseurToit = lenght/20;
+
+    GLfloat rotPas = 360.0 / nbCubes.x();
+    GLfloat rot = 0;
+
+    GLfloat posX = (lenght*1.1)*cos(rot *PI/180.0);
+    GLfloat posY = (lenght*1.1)*sin(rot *PI/180.0);
+
+    GLfloat oldPosX = (lenght*1.1)*cos((360-rotPas) *PI/180.0);
+    GLfloat oldPosY = (lenght*1.1)*sin((360-rotPas) *PI/180.0);
+
+    for(int i = 0; i < nbCubes.x()+1 ; i++){
+
+        posX = (lenght*1.1)*cos(rot *PI/180.0);
+        posY = (lenght*1.1)*sin(rot *PI/180.0);
+
+        QVector3D* pos = (QVector3D*)malloc(sizeof(QVector3D)*8);
+        pos[0] = QVector3D(oldPosX,0,oldPosY);
+        pos[1] = QVector3D(posX,0,posY);
+        pos[2] = QVector3D(0,hauteurToit,0);
+        pos[3] = QVector3D(0,hauteurToit,0);
+
+        pos[4] = QVector3D(oldPosX,0-epaisseurToit,oldPosY);
+        pos[5] = QVector3D(posX,0-epaisseurToit,posY);
+        pos[6] = QVector3D(0,hauteurToit-epaisseurToit,0);
+        pos[7] = QVector3D(0,hauteurToit-epaisseurToit,0);
+
+        //Toit
+        createCubeParam(pos,matGlobale*matWorld, QVector3D(0,hauteurToit*11/10,0),QVector3D(0,0,0),QVector3D(1,1,1),texture);
+
+        GLfloat murPosX = (lenght)*cos(rot *PI/180.0);
+        GLfloat murPosY = (lenght)*sin(rot *PI/180.0);
+        createPerforedPlank(matGlobale*matWorld, QVector3D(hauteurToit*4/3,hauteurToit/10,hauteurToit),QVector2D(hauteurToit/3,hauteurToit/3),QVector3D(murPosX,hauteurToit/2,murPosY),QVector3D(90,0,90+rot),QVector3D(1,1,1),texture);
+
+
+
+        rot += rotPas;
+        oldPosX = posX;
+        oldPosY = posY;
+    }
 
 }
+
+
+void CastleWindow::generateEnceinte(GLfloat lenght, int nbCotesEnceinte, attributesElement attrMur, int typeTour,attributesElement attrTour, QMatrix4x4 matGlobale, QVector3D translate, QVector3D rotate, QVector3D scale, int texture, int details){
+    QMatrix4x4 matWorld = createMatrixWorld(translate,rotate,scale);
+
+    int rd = randomDetails(details);
+    int tT = randomDetails(typeTour,2);
+    if(attrMur.details == 0) attrMur.details = rd;
+    if(attrTour.details == 0) attrTour.details = rd;
+
+
+    GLfloat rotPas = 360.0 / nbCotesEnceinte;
+    GLfloat rot = 0;
+
+    //Création des murs
+    GLfloat radius = ((lenght*(attrMur.dimensions.x() + attrTour.dimensions.x()) )/ tan((90 - (rotPas/2)) * PI/180.0));
+    //GLfloat radius = (lenght*(attrMur.dimensions.x()+attrTour.dimensions.x()) / 2.0) / (tan(rotPas /2.0));//lenght*attrMur.dimensions.x();
+    for(int i = 0; i < nbCotesEnceinte ; i++){
+        //Création du point central du mur
+        GLfloat posX = radius*cos(rot *PI/180.0);
+        GLfloat posZ = radius*sin(rot *PI/180.0);
+        QVector3D pos = QVector3D(posX,0,posZ);
+        createMur(lenght,attrMur.dimensions,matGlobale*matWorld,pos,QVector3D(0,270-rot,0),QVector3D(1,1,1),attrMur.texture,attrTour.details);
+
+        rot += rotPas;
+    }
+
+    rot = rotPas/2.0;
+    //Création des tours
+    for(int i = 0; i < nbCotesEnceinte ; i++){
+        //Création du point central de la tour
+        GLfloat posX = radius*cos(rot *PI/180.0);
+        GLfloat posZ = radius*sin(rot *PI/180.0);
+        GLfloat posY = attrTour.dimensions.y() - attrMur.dimensions.y();
+        QVector3D pos = QVector3D(posX,posY,posZ);
+        if(tT == typeTourCylindre){
+            createTourCylinder(lenght, QVector2D(attrTour.dimensions.x()*coeffMultTour,attrTour.dimensions.y()),matGlobale*matWorld,pos,QVector3D(0,270-rot,0),QVector3D(1,1,1),attrTour.texture,attrTour.details);
+        }else{
+            createTour(lenght,attrTour.dimensions,matGlobale*matWorld,pos,QVector3D(0,270-rot,0),QVector3D(1,1,1),attrTour.texture,attrTour.details);
+        }
+
+        rot += rotPas;
+    }
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
